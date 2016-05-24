@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 # Copyright (c) 2010 Nicolas P. M. Legrand <nlegrand@ethelred.fr>
+# Copyright (c) 2016 Giovanni Bechis <giovanni@paclan.it>
 #
 # Permission to use, copy, modify, and distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -30,6 +31,14 @@ if (! -d $snapdl_dir) {
 	printf "Creating $ENV{'HOME'}/.snapdl\n";
 	mkdir "$ENV{'HOME'}/.snapdl" or die "can't mkdir $ENV{'HOME'}/.snapdl";
 }
+
+my $openbsd_ver;
+print "Which version do you want do donwload [snapshots] ";
+chomp($openbsd_ver = <STDIN>);
+if ($openbsd_ver !~ /[0-9]\.[0-9]/) {
+	$openbsd_ver = "snapshots";
+}
+
 my $i_want_a_new_mirrors_dat;
 if (-e "$snapdl_dir/mirrors.dat") {
 	my $mtime = (stat("$snapdl_dir/mirrors.dat"))[9];
@@ -207,8 +216,8 @@ HW: {
 }
 
 print "Getting SHA256 from main mirror\n";
-my $SHA256 = `ftp -o - http://ftp.OpenBSD.org/pub/OpenBSD/snapshots/$hw/SHA256`;
-my $SHA256sig = `ftp -o - http://ftp.OpenBSD.org/pub/OpenBSD/snapshots/$hw/SHA256.sig`;
+my $SHA256 = `ftp -o - http://ftp.OpenBSD.org/pub/OpenBSD/$openbsd_ver/$hw/SHA256`;
+my $SHA256sig = `ftp -o - http://ftp.OpenBSD.org/pub/OpenBSD/$openbsd_ver/$hw/SHA256.sig`;
 
 if ( $SHA256 =~ /base([0-9]{2,2}).tgz/ ) {
         my $r = $1;
@@ -221,7 +230,7 @@ if ( $SHA256 =~ /base([0-9]{2,2}).tgz/ ) {
 my %synced_mirror; # { 'http://mirror.com' => $time }
 print "Let's locate mirrors synchronised with ftp.OpenBSD.org... ";
 for my $candidat_server (@mirrors) {
-        my $url = "${candidat_server}snapshots/$hw/SHA256";
+        my $url = "${candidat_server}$openbsd_ver/$hw/SHA256";
         my $time_before_dl = [gettimeofday];
         my $mirrored_SHA256;
         eval {
@@ -326,10 +335,10 @@ for my $set (sort keys %sets) {
         if ($sets{$set} eq "checked"
             && $SHA256 =~ /(SHA256 \($set\) = [a-f0-9]+\n)/s) {
                 if ($pretend eq "no") {
-                        system("ftp", "-r 1", "$server/snapshots/$hw/$set");
+                        system("ftp", "-r 1", "$server/$openbsd_ver/$hw/$set");
                         push @stripped_SHA256, $1;
                 } else {
-                        print "ftp -r 1 $server/snapshots/$hw/$set\n";
+                        print "ftp -r 1 $server/$openbsd_ver/$hw/$set\n";
                 }
         }
 }
