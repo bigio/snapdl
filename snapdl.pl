@@ -33,7 +33,7 @@ if (! -d $snapdl_dir) {
 }
 
 my $openbsd_ver;
-print "Which version do you want do donwload [snapshots] ";
+print "Which version do you want do download? [snapshots] ";
 chomp($openbsd_ver = <STDIN>);
 if ($openbsd_ver !~ /[0-9]\.[0-9]/) {
 	$openbsd_ver = "snapshots";
