@@ -179,19 +179,17 @@ SETS: {
 my @platforms = ( "alpha",
                   "amd64",
                   "armish",
-                  "hp300",
+		  "armv7",
                   "hppa",
                   "i386",
                   "landisk",
                   "loongson",
+		  "luna88k",
                   "macppc",
-                  "mvme68k",
-                  "mvme88k",
+		  "octeon",
                   "sgi",
-                  "socppc",
                   "sparc",
                   "sparc64",
-                  "vax",
                   "zaurus" );
 my $hw;
 HW: {
