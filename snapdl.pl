@@ -126,7 +126,7 @@ COUNTRY: {
                             && $operation eq '-') {
                                 $mirrors{$country}->[0] = "not checked";
                         } elsif ($country =~ /$pattern/
-                                 && $operation eq '+') {
+                            && $operation eq '+') {
                                 $mirrors{$country}->[0] = "checked";
                         }
                 }
@@ -312,7 +312,7 @@ SETS: {
                             && $operation eq '-') {
                                 $sets{$set} = "not checked";
                         } elsif ($set =~ /$pattern/
-                                 && $operation eq '+') {
+                            && $operation eq '+') {
                                 $sets{$set} = "checked";
                         }
                 }
@@ -351,8 +351,8 @@ if ($pretend eq "no") {
         open my $index_txt, '>', 'index.txt' or die $!;
         print $str_index_txt;
         print $index_txt $str_index_txt;
-	 open my $fh_SHA256sig, '>', 'SHA256.sig' or die $!;
-	 print $fh_SHA256sig $SHA256sig;
+	open my $fh_SHA256sig, '>', 'SHA256.sig' or die $!;
+	print $fh_SHA256sig $SHA256sig;
 }
 
 
