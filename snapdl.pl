@@ -19,23 +19,16 @@
 use strict;
 use warnings;
 use Archive::Tar;
-use Getopt::Std;
 use Time::HiRes qw(gettimeofday tv_interval);
 
 my %opts = ();
 my $checkpkg = 0;
 my $base_set;
 
-getopts('p', \%opts);
-if ( defined $opts{p} ) {
-        $checkpkg = 1;
-}
-
 if ($#ARGV > -1) {
-        print "usage: snapdl [-p]\n";
+        print "usage: snapdl\n";
 	exit 1;
 }
-
 
 my $snapdl_dir = "$ENV{'HOME'}/.snapdl";
 if (! -d $snapdl_dir) {
@@ -367,25 +360,23 @@ if ($pretend eq "no") {
         print $index_txt $str_index_txt;
 	open my $fh_SHA256sig, '>', 'SHA256.sig' or die $!;
 	print $fh_SHA256sig $SHA256sig;
-	if ($checkpkg eq 1) {
-		# Set PKG_DBDIR do /var/empty to force download of new package
-		my $wantlib = `env PKG_DBDIR=/var/empty PKG_PATH=$server/$openbsd_ver/packages/$hw/ pkg_info -f zziplib | grep wantlib`;
-		my $tar = Archive::Tar->new;
-		$tar->read($sets_dir . "/" . $base_set);
 
-		my @a_wantlib = split(" ", $wantlib);
-		my @p_wantlib;
-		my $lib;
-		for (my $i = 1; $i <= @a_wantlib; $i+=2) {
-        		@p_wantlib = split(/\./, $a_wantlib[$i]);
-        		$lib = "./usr/lib/lib" . $p_wantlib[0] . ".so.$p_wantlib[1].$p_wantlib[2]";
-        		if( not $tar->contains_file($lib)) {
-                		print "Warning: $lib not in sync with base\n";
-        		}
+	# Set PKG_DBDIR do /var/empty to force download of new package
+	my $wantlib = `env PKG_DBDIR=/var/empty PKG_PATH=$server/$openbsd_ver/packages/$hw/ pkg_info -f zziplib | grep wantlib`;
+	my $tar = Archive::Tar->new;
+	$tar->read($sets_dir . "/" . $base_set);
+
+	my @a_wantlib = split(" ", $wantlib);
+	my @p_wantlib;
+	my $lib;
+	for (my $i = 1; $i <= @a_wantlib; $i+=2) {
+		@p_wantlib = split(/\./, $a_wantlib[$i]);
+		$lib = "./usr/lib/lib" . $p_wantlib[0] . ".so.$p_wantlib[1].$p_wantlib[2]";
+		if( not $tar->contains_file($lib)) {
+			print "Warning: $lib not in sync with base\n";
 		}
 	}
 }
-
 
 sub format_check { # format_check(\@list)
 
