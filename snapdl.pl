@@ -24,7 +24,7 @@ use Time::HiRes qw(gettimeofday tv_interval);
 my %opts = ();
 my $checkpkg = 0;
 my $base_set;
-my $pkgtocheck = 'zziplib';
+my $pkgtocheck = 'xxdiff';
 
 if ($#ARGV > -1) {
         print "usage: snapdl\n";
