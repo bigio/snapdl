@@ -24,6 +24,7 @@ use Time::HiRes qw(gettimeofday tv_interval);
 my %opts = ();
 my $checkpkg = 0;
 my $base_set;
+my $pkgtocheck = 'zziplib';
 
 if ($#ARGV > -1) {
         print "usage: snapdl\n";
@@ -362,7 +363,7 @@ if ($pretend eq "no") {
 	print $fh_SHA256sig $SHA256sig;
 
 	# Set PKG_DBDIR do /var/empty to force download of new package
-	my $wantlib = `env PKG_DBDIR=/var/empty PKG_PATH=$server/$openbsd_ver/packages/$hw/ pkg_info -f zziplib | grep wantlib`;
+	my $wantlib = `env PKG_DBDIR=/var/empty PKG_PATH=$server/$openbsd_ver/packages/$hw/ pkg_info -f $pkgtocheck | grep wantlib`;
 	my $tar = Archive::Tar->new;
 	$tar->read($sets_dir . "/" . $base_set);
 
