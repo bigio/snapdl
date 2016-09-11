@@ -19,6 +19,7 @@
 use strict;
 use warnings;
 use Archive::Tar;
+use File::Path qw(make_path);
 use Time::HiRes qw(gettimeofday tv_interval);
 
 my %opts = ();
@@ -175,8 +176,8 @@ SETS: {
                 $sets_dir = $line;
         } 
         if (! -d $sets_dir) {
-                system("mkdir", "-p", $sets_dir);
-                die "Can't mkdir -p $sets_dir" if ($? != 0);
+                make_path($sets_dir);
+                die "Can't mkdir $sets_dir" if ($? != 0);
         }
         (! -d $sets_dir ) ? redo SETS : chdir($sets_dir);
 }
