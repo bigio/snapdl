@@ -25,6 +25,7 @@ use Time::HiRes qw(gettimeofday tv_interval);
 my %opts = ();
 my $checkpkg = 0;
 my $base_set;
+my $xbase_set;
 my $pkgtocheck = 'xxdiff';
 
 if ($#ARGV > -1) {
@@ -342,6 +343,8 @@ for my $set (sort keys %sets) {
                         system("ftp", "-r 1", "$server/$openbsd_ver/$hw/$set");
 			if($set =~ /^base/) {
 				$base_set = $set;
+			} elsif($set =~ /^xbase/) {
+				$xbase_set = $set;
 			}
                         push @stripped_SHA256, $1;
                 } else {
@@ -367,14 +370,18 @@ if ($pretend eq "no") {
 	my $wantlib = `env PKG_DBDIR=/var/empty PKG_PATH=$server/$openbsd_ver/packages/$hw/ pkg_info -f $pkgtocheck | grep wantlib`;
 	my $tar = Archive::Tar->new;
 	$tar->read($sets_dir . "/" . $base_set);
+	my $xtar = Archive::Tar->new;
+	$xtar->read($sets_dir . "/" . $xbase_set);
 
 	my @a_wantlib = split(" ", $wantlib);
 	my @p_wantlib;
 	my $lib;
+	my $xlib;
 	for (my $i = 1; $i <= @a_wantlib; $i+=2) {
 		@p_wantlib = split(/\./, $a_wantlib[$i]);
 		$lib = "./usr/lib/lib" . $p_wantlib[0] . ".so.$p_wantlib[1].$p_wantlib[2]";
-		if( not $tar->contains_file($lib)) {
+		$xlib = "./usr/X11R6/lib/lib" . $p_wantlib[0] . ".so.$p_wantlib[1].$p_wantlib[2]";
+		if(( not $tar->contains_file($lib)) && (not $xtar->contains_file($xlib))) {
 			print "Warning: $lib not in sync with base\n";
 		}
 	}
