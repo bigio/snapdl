@@ -26,7 +26,7 @@ my %opts = ();
 my $checkpkg = 0;
 my $base_set;
 my $xbase_set;
-my $pkgtocheck = 'xxdiff';
+my $pkgtocheck = 'mplayer';
 
 if ($#ARGV > -1) {
         print "usage: snapdl\n";
