@@ -366,6 +366,10 @@ if ($pretend eq "no") {
 	open my $fh_SHA256sig, '>', 'SHA256.sig' or die $!;
 	print $fh_SHA256sig $SHA256sig;
 
+	wantlib_check;
+}
+
+sub wantlib_check {
 	# Set PKG_DBDIR do /var/empty to force download of new package
 	my $wantlib = `env PKG_DBDIR=/var/empty PKG_PATH=$server/$openbsd_ver/packages/$hw/ pkg_info -f $pkgtocheck | grep wantlib`;
 	my $tar = Archive::Tar->new;
@@ -377,12 +381,20 @@ if ($pretend eq "no") {
 	my @p_wantlib;
 	my $lib;
 	my $xlib;
+	my @matchfile;
+	my @xmatchfile;
 	for (my $i = 1; $i <= @a_wantlib; $i+=2) {
 		@p_wantlib = split(/\./, $a_wantlib[$i]);
 		$lib = "./usr/lib/lib" . $p_wantlib[0] . ".so.$p_wantlib[1].$p_wantlib[2]";
 		$xlib = "./usr/X11R6/lib/lib" . $p_wantlib[0] . ".so.$p_wantlib[1].$p_wantlib[2]";
 		if(( not $tar->contains_file($lib)) && (not $xtar->contains_file($xlib))) {
-			print "Warning: $lib not in sync with base\n";
+			# check if a similar library exists to skip wantlib 
+			# installed by packages
+			@matchfile = glob("/usr/lib/lib" . $p_wantlib[0] . ".so.*");
+			@xmatchfile = glob("/usr/X11R6/lib/lib" . $p_wantlib[0] . ".so.*");
+			if( (@matchfile ne 0) or (@xmatchfile ne 0)) {
+				print "Warning: $lib not in sync with base\n";
+			}
 		}
 	}
 }
