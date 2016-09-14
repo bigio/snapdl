@@ -27,6 +27,54 @@ my $checkpkg = 0;
 my $base_set;
 my $xbase_set;
 my $pkgtocheck = 'mplayer';
+my $server;
+my $openbsd_ver;
+my $hw;
+my $sets_dir; #path where to download sets
+
+sub wantlib_check {
+	# Set PKG_DBDIR do /var/empty to force download of new package
+	my $wantlib = `env PKG_DBDIR=/var/empty PKG_PATH=$server/$openbsd_ver/packages/$hw/ pkg_info -f $pkgtocheck | grep wantlib`;
+	my $tar = Archive::Tar->new;
+	$tar->read($sets_dir . "/" . $base_set);
+	my $xtar = Archive::Tar->new;
+	$xtar->read($sets_dir . "/" . $xbase_set);
+
+	my @a_wantlib = split(" ", $wantlib);
+	my @p_wantlib;
+	my $lib;
+	my $xlib;
+	my @matchfile;
+	my @xmatchfile;
+	for (my $i = 1; $i <= @a_wantlib; $i+=2) {
+		@p_wantlib = split(/\./, $a_wantlib[$i]);
+		$lib = "./usr/lib/lib" . $p_wantlib[0] . ".so.$p_wantlib[1].$p_wantlib[2]";
+		$xlib = "./usr/X11R6/lib/lib" . $p_wantlib[0] . ".so.$p_wantlib[1].$p_wantlib[2]";
+		if(( not $tar->contains_file($lib)) && (not $xtar->contains_file($xlib))) {
+			# check if a similar library exists to skip wantlib 
+			# installed by packages
+			@matchfile = glob("/usr/lib/lib" . $p_wantlib[0] . ".so.*");
+			@xmatchfile = glob("/usr/X11R6/lib/lib" . $p_wantlib[0] . ".so.*");
+			if( (@matchfile ne 0) or (@xmatchfile ne 0)) {
+				print "Warning: $lib not in sync with base\n";
+			}
+		}
+	}
+}
+
+sub format_check { # format_check(\@list)
+
+	my $list_ref = shift @_;
+	my $col_size = int($#{$list_ref} / 4);
+	for (my $i = 0; $i <= $col_size; $i++) {
+		printf "%-20s",$list_ref->[$i];
+		for (my $j = 1; $j <= 3; $j++) {
+		    printf "%-20s",$list_ref->[$i + ($col_size + 1) * $j]
+			if (defined($list_ref->[$i + ($col_size + 1) * $j]));
+		}
+	        print "\n";
+	}
+}
 
 if ($#ARGV > -1) {
         print "usage: snapdl\n";
@@ -39,7 +87,6 @@ if (! -d $snapdl_dir) {
 	mkdir "$ENV{'HOME'}/.snapdl" or die "can't mkdir $ENV{'HOME'}/.snapdl";
 }
 
-my $openbsd_ver;
 print "Which version do you want do download? [snapshots] ";
 chomp($openbsd_ver = <STDIN>);
 if ($openbsd_ver !~ /[0-9]\.[0-9]/) {
@@ -164,7 +211,6 @@ PROTOCOL: {
         }
 }
 
-my $sets_dir; #path where to download sets
 my $pretend = "no";
 SETS: {
         $sets_dir = "$ENV{'HOME'}/OpenBSD";
@@ -198,7 +244,6 @@ my @platforms = ( "alpha",
                   "sparc",
                   "sparc64",
                   "zaurus" );
-my $hw;
 HW: {
         chomp($hw = `uname -m`);
         printf "Platform? (or 'list') [$hw] ";
@@ -256,7 +301,6 @@ for my $candidat_server (@mirrors) {
 }
 print "Done\n";
 
-my $server;
 my @sorted_mirrors = sort {$synced_mirror{$a} <=> $synced_mirror{$b}} keys %synced_mirror;
 die "No synchronised mirror found, try later..." if $#sorted_mirrors == -1;
 
@@ -367,48 +411,4 @@ if ($pretend eq "no") {
 	print $fh_SHA256sig $SHA256sig;
 
 	wantlib_check;
-}
-
-sub wantlib_check {
-	# Set PKG_DBDIR do /var/empty to force download of new package
-	my $wantlib = `env PKG_DBDIR=/var/empty PKG_PATH=$server/$openbsd_ver/packages/$hw/ pkg_info -f $pkgtocheck | grep wantlib`;
-	my $tar = Archive::Tar->new;
-	$tar->read($sets_dir . "/" . $base_set);
-	my $xtar = Archive::Tar->new;
-	$xtar->read($sets_dir . "/" . $xbase_set);
-
-	my @a_wantlib = split(" ", $wantlib);
-	my @p_wantlib;
-	my $lib;
-	my $xlib;
-	my @matchfile;
-	my @xmatchfile;
-	for (my $i = 1; $i <= @a_wantlib; $i+=2) {
-		@p_wantlib = split(/\./, $a_wantlib[$i]);
-		$lib = "./usr/lib/lib" . $p_wantlib[0] . ".so.$p_wantlib[1].$p_wantlib[2]";
-		$xlib = "./usr/X11R6/lib/lib" . $p_wantlib[0] . ".so.$p_wantlib[1].$p_wantlib[2]";
-		if(( not $tar->contains_file($lib)) && (not $xtar->contains_file($xlib))) {
-			# check if a similar library exists to skip wantlib 
-			# installed by packages
-			@matchfile = glob("/usr/lib/lib" . $p_wantlib[0] . ".so.*");
-			@xmatchfile = glob("/usr/X11R6/lib/lib" . $p_wantlib[0] . ".so.*");
-			if( (@matchfile ne 0) or (@xmatchfile ne 0)) {
-				print "Warning: $lib not in sync with base\n";
-			}
-		}
-	}
-}
-
-sub format_check { # format_check(\@list)
-
-	my $list_ref = shift @_;
- 	my $col_size = int($#{$list_ref} / 4);
-	for (my $i = 0; $i <= $col_size; $i++) {
-		printf "%-20s",$list_ref->[$i];
-		for (my $j = 1; $j <= 3; $j++) {
-		    printf "%-20s",$list_ref->[$i + ($col_size + 1) * $j]
-			if (defined($list_ref->[$i + ($col_size + 1) * $j]));
-		}
-	        print "\n";
-	}
 }
