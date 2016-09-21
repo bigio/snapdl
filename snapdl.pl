@@ -353,6 +353,10 @@ SETS: {
                 if ($line =~ /(\+|-)(.+)/) {
                         $operation = $1;
                         $pattern = $2;
+			if($pattern =~ /\*/) {
+				print "pattern '*' not allowed\n";
+				redo SETS;
+			}
                 } else {
                         print "+re add sets with pattern re\n-re remove sets with pattern re\n";
                         redo SETS;
