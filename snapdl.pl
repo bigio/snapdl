@@ -20,8 +20,10 @@ use strict;
 use warnings;
 use Archive::Tar;
 use File::Path qw(make_path);
+use LWP::UserAgent;
 use Time::HiRes qw(gettimeofday tv_interval);
 
+my $VERSION = "1.2.3";
 my %opts = ();
 my $checkpkg = 0;
 my $base_set;
@@ -31,6 +33,14 @@ my $server;
 my $openbsd_ver;
 my $hw;
 my $sets_dir; #path where to download sets
+my $ua;	# UserAgent
+my $request;
+my $resp;
+
+my $progname = $0;
+$progname =~ s,.*/,,;    # only basename left in progname
+$progname =~ s,.*\\,, if $^O eq "MSWin32";
+$progname =~ s/\.\w*$//; # strip extension if any
 
 sub wantlib_check {
 	# Set PKG_DBDIR do /var/empty to force download of new package
@@ -76,6 +86,35 @@ sub format_check { # format_check(\@list)
 	}
 }
 
+sub download {
+	my $uri = shift;
+	my $file = shift;
+
+	$request = HTTP::Request->new(GET => "$uri/$file");
+	$resp = $ua->request($request);
+
+	return $resp->content;
+}
+
+sub download_and_save {
+	my $uri = shift;
+	my $file = shift;
+
+	my $content = download($uri, $file);
+
+	unless (fileno(FILE)) {
+		open(FILE, ">", "$file") || die "Can't open $file: $!\n";
+	}
+                  print "Saving to '$file'...\n";
+                  use Fcntl qw(O_WRONLY O_EXCL);
+                  sysopen(FILE, $file, O_WRONLY|O_EXCL) ||
+                      die "Can't open $file: $!";
+	print FILE $content or die "Can't write to $file: $!\n";
+	if (fileno(FILE)) {
+		close(FILE) || die "Can't write to $file: $!\n";
+	}
+}
+
 if ($#ARGV > -1) {
         print "usage: snapdl\n";
 	exit 1;
@@ -93,6 +132,9 @@ if ($openbsd_ver !~ /[0-9]\.[0-9]/) {
 	$openbsd_ver = "snapshots";
 }
 
+$ua = LWP::UserAgent->new;
+$ua->agent("$progname/$VERSION ");
+
 my $i_want_a_new_mirrors_dat;
 if (-e "$snapdl_dir/mirrors.dat") {
 	my $mtime = (stat("$snapdl_dir/mirrors.dat"))[9];
@@ -103,7 +145,7 @@ if (-e "$snapdl_dir/mirrors.dat") {
 } 
 if (! -e "$snapdl_dir/mirrors.dat" || $i_want_a_new_mirrors_dat =~ /y|yes/i) {
 	chdir($snapdl_dir);
-	system("ftp", "http://www.OpenBSD.org/build/mirrors.dat");
+	download_and_save("http://www.OpenBSD.org/build", "mirrors.dat");
 }
 
 open my $mirrors_dat, '<', "$ENV{'HOME'}/.snapdl/mirrors.dat" or die "can't open $ENV{'HOME'}/.snapdl/mirrors.dat";
@@ -266,8 +308,8 @@ HW: {
 }
 
 print "Getting SHA256 from main mirror\n";
-my $SHA256 = `ftp -o - http://ftp.OpenBSD.org/pub/OpenBSD/$openbsd_ver/$hw/SHA256`;
-my $SHA256sig = `ftp -o - http://ftp.OpenBSD.org/pub/OpenBSD/$openbsd_ver/$hw/SHA256.sig`;
+my $SHA256 = download("http://ftp.OpenBSD.org/pub/OpenBSD/$openbsd_ver/$hw", "SHA256");
+my $SHA256sig = download("http://ftp.OpenBSD.org/pub/OpenBSD/$openbsd_ver/$hw", "SHA256.sig");
 
 if ( $SHA256 =~ /base([0-9]{2,2}).tgz/ ) {
         my $r = $1;
@@ -280,13 +322,13 @@ if ( $SHA256 =~ /base([0-9]{2,2}).tgz/ ) {
 my %synced_mirror; # { 'http://mirror.com' => $time }
 print "Let's locate mirrors synchronised with ftp.OpenBSD.org... ";
 for my $candidat_server (@mirrors) {
-        my $url = "${candidat_server}$openbsd_ver/$hw/SHA256";
+        my $url = "${candidat_server}$openbsd_ver/$hw";
         my $time_before_dl = [gettimeofday];
         my $mirrored_SHA256;
         eval {
                 local $SIG{ALRM} = sub {die "timeout\n"};
                 alarm 1;
-                $mirrored_SHA256 = `ftp -o - $url 2>/dev/null`;
+                $mirrored_SHA256 = download($url, "SHA256");
                 alarm 0;
         };
         if ($@) {
@@ -388,7 +430,7 @@ for my $set (sort keys %sets) {
         if ($sets{$set} eq "checked"
             && $SHA256 =~ /(SHA256 \($set\) = [a-f0-9]+\n)/s) {
                 if ($pretend eq "no") {
-                        system("ftp", "-r 1", "$server/$openbsd_ver/$hw/$set");
+                        download_and_save("$server/$openbsd_ver/$hw", "$set");
 			if($set =~ /^base/) {
 				$base_set = $set;
 			} elsif($set =~ /^xbase/) {
