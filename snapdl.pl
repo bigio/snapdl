@@ -19,6 +19,7 @@
 use strict;
 use warnings;
 use Archive::Tar;
+use Fcntl qw(O_WRONLY O_EXCL);
 use File::Path qw(make_path);
 use LWP::UserAgent;
 use Time::HiRes qw(gettimeofday tv_interval);
@@ -105,10 +106,10 @@ sub download_and_save {
 	unless (fileno(FILE)) {
 		open(FILE, ">", "$file") || die "Can't open $file: $!\n";
 	}
-                  print "Saving to '$file'...\n";
-                  use Fcntl qw(O_WRONLY O_EXCL);
-                  sysopen(FILE, $file, O_WRONLY|O_EXCL) ||
-                      die "Can't open $file: $!";
+
+	print "Saving to '$file'...\n";
+	sysopen(FILE, $file, O_WRONLY|O_EXCL) ||
+		die "Can't open $file: $!";
 	print FILE $content or die "Can't write to $file: $!\n";
 	if (fileno(FILE)) {
 		close(FILE) || die "Can't write to $file: $!\n";
