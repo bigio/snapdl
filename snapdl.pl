@@ -21,8 +21,11 @@ $| = 1;
 use strict;
 use warnings;
 use Archive::Tar;
+use Data::Dumper;
+use Digest::SHA;
 use Fcntl qw(O_WRONLY O_EXCL);
 use File::Path qw(make_path);
+use File::Basename;
 use LWP::UserAgent;
 use Time::HiRes qw(gettimeofday tv_interval);
 
@@ -116,6 +119,21 @@ sub download_and_save {
 	if (fileno(FILE)) {
 		close(FILE) || die "Can't write to $file: $!\n";
 	}
+}
+
+sub cksum256 {
+	my $ifile = shift;
+
+	my $alg = "SHA256";
+        my $sha = Digest::SHA->new($alg);
+	my $digest;
+	my $line;
+
+	$sha->addfile($ifile);
+
+	$digest = $sha->hexdigest();
+	$line = $alg . " (" . basename($ifile) . ") = " . $digest;
+	return $line;
 }
 
 if ($#ARGV > -1) {
@@ -449,9 +467,28 @@ for my $set (sort keys %sets) {
 if ($pretend eq "no") {
         open my $fh_SHA256, '>', 'SHA256' or die $!;
         print $fh_SHA256 @stripped_SHA256;
+        close $fh_SHA256;
         print "Checksum:\n";
-        system("cksum", "-a sha256", "-c", "SHA256") ;
-        die "Bad checksum" if ($? != 0);
+        open $fh_SHA256, '<', "SHA256" or die "can't open SHA256";
+        while (my $line_SHA = <$fh_SHA256>) {
+		chomp($line_SHA);
+		my @a_line_SHA = split / /, $line_SHA;
+		# Filename is in second position
+		my $ifile = $a_line_SHA[1];
+		$ifile =~ s/\(|\)//g;
+
+		if ( -f ($sets_dir . "/" . $ifile) ) {
+			my $ck_line = cksum256($sets_dir . "/" . $ifile);
+			if ($line_SHA ne $ck_line) {
+				die "Bad checksum in $ifile";
+			} else {
+				print $ifile . " : OK\n";
+			}
+		} else {
+			print($sets_dir . "/" . $ifile . " not found\n");
+		}
+        }
+        close $fh_SHA256;
         my $str_index_txt = `ls -l`;
         open my $index_txt, '>', 'index.txt' or die $!;
         print $str_index_txt;
