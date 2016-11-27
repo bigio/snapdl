@@ -322,10 +322,10 @@ if ( $SHA256 =~ /base([0-9]{2,2}).tgz/ ) {
 
 my %synced_mirror; # { 'http://mirror.com' => $time }
 print "Let's locate mirrors synchronised with ftp.OpenBSD.org... ";
+my $mirrored_SHA256 = "";
 for my $candidat_server (@mirrors) {
         my $url = "${candidat_server}$openbsd_ver/$hw";
         my $time_before_dl = [gettimeofday];
-        my $mirrored_SHA256;
         eval {
                 local $SIG{ALRM} = sub {die "timeout\n"};
                 alarm 1;
