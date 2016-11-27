@@ -490,11 +490,12 @@ if ($pretend eq "no") {
         }
         close $fh_SHA256;
         my $str_index_txt = `ls -l`;
-        open my $index_txt, '>', 'index.txt' or die $!;
-        print $str_index_txt;
-        print $index_txt $str_index_txt;
+        open my $fh_index_txt, '>', 'index.txt' or die $!;
+        print $fh_index_txt $str_index_txt;
+	close $fh_index_txt;
 	open my $fh_SHA256sig, '>', 'SHA256.sig' or die $!;
 	print $fh_SHA256sig $SHA256sig;
+	close $fh_SHA256sig;
 
 	wantlib_check;
 }
