@@ -457,15 +457,19 @@ for my $set (sort keys %sets) {
 			} elsif($set =~ /^xbase/) {
 				$xbase_set = $set;
 			}
-                        push @stripped_SHA256, $1;
+			if ( defined $1 ) {
+				push @stripped_SHA256, $1;
+			}
                 } else {
                         print "ftp -r 1 $server/$openbsd_ver/$hw/$set\n";
                 }
         }
 }
+my $str_index_txt = download("$server/$openbsd_ver/$hw", "index.txt");
 
 if ($pretend eq "no") {
         open my $fh_SHA256, '>', 'SHA256' or die $!;
+	chomp(@stripped_SHA256);
         print $fh_SHA256 @stripped_SHA256;
         close $fh_SHA256;
         print "Checksum:\n";
@@ -489,7 +493,6 @@ if ($pretend eq "no") {
 		}
         }
         close $fh_SHA256;
-        my $str_index_txt = `ls -l`;
         open my $fh_index_txt, '>', 'index.txt' or die $!;
         print $fh_index_txt $str_index_txt;
 	close $fh_index_txt;
