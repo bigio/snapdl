@@ -458,7 +458,7 @@ for my $set (sort keys %sets) {
 				$xbase_set = $set;
 			}
 			if ( defined $1 ) {
-				push @stripped_SHA256, $1;
+				push @stripped_SHA256, $1 . "\n";
 			}
                 } else {
                         print "ftp -r 1 $server/$openbsd_ver/$hw/$set\n";
