@@ -28,6 +28,7 @@ use File::Path qw(make_path);
 use File::Basename;
 use LWP::UserAgent;
 use Time::HiRes qw(gettimeofday tv_interval);
+# use OpenBSD::Pledge;
 
 my $VERSION = "1.2.3";
 my %opts = ();
@@ -47,6 +48,8 @@ my $progname = $0;
 $progname =~ s,.*/,,;    # only basename left in progname
 $progname =~ s,.*\\,, if $^O eq "MSWin32";
 $progname =~ s/\.\w*$//; # strip extension if any
+
+# pledge(qw( stdio rpath cpath wpath inet )) || die "Unable to pledge: $!";
 
 sub wantlib_check {
 	# Set PKG_DBDIR do /var/empty to force download of new package
@@ -106,19 +109,27 @@ sub download_and_save {
 	my $uri = shift;
 	my $file = shift;
 
-	my $content = download($uri, $file);
+	my $content = "";
+
+        eval {
+                local $SIG{ALRM} = sub {die "timeout\n"};
+                alarm 1;
+		$content = download($uri, $file);
+                alarm 0;
+        };
 
 	unless (fileno(FILE)) {
 		open(FILE, ">", "$file") || die "Can't open $file: $!\n";
 	}
 
-	print "Saving to '$file'...\n";
+	print "Saving to '$file'...";
 	sysopen(FILE, $file, O_WRONLY|O_EXCL) ||
 		die "Can't open $file: $!";
 	print FILE $content or die "Can't write to $file: $!\n";
 	if (fileno(FILE)) {
 		close(FILE) || die "Can't write to $file: $!\n";
 	}
+	print " done\n";
 }
 
 sub cksum256 {
