@@ -111,12 +111,7 @@ sub download_and_save {
 
 	my $content = "";
 
-        eval {
-                local $SIG{ALRM} = sub {die "timeout\n"};
-                alarm 1;
-		$content = download($uri, $file);
-                alarm 0;
-        };
+	$content = download($uri, $file);
 
 	unless (fileno(FILE)) {
 		open(FILE, ">", "$file") || die "Can't open $file: $!\n";
