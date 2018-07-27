@@ -27,6 +27,7 @@ use Fcntl qw(O_WRONLY O_EXCL);
 use File::Path qw(make_path);
 use File::Basename;
 use LWP::UserAgent;
+use LWP::Simple;
 use Time::HiRes qw(gettimeofday tv_interval);
 # use OpenBSD::Pledge;
 
@@ -99,32 +100,21 @@ sub download {
 	my $uri = shift;
 	my $file = shift;
 
-	$request = HTTP::Request->new(GET => "$uri/$file");
-	$resp = $ua->request($request);
+	my $content = get("$uri/$file");
 
-	return $resp->content;
+	return $content;
 }
 
 sub download_and_save {
 	my $uri = shift;
 	my $file = shift;
 
-	my $content = "";
-
-	$content = download($uri, $file);
-
-	unless (fileno(FILE)) {
-		open(FILE, ">", "$file") || die "Can't open $file: $!\n";
-	}
-
 	print "Saving to '$file'...";
-	sysopen(FILE, $file, O_WRONLY|O_EXCL) ||
-		die "Can't open $file: $!";
-	print FILE $content or die "Can't write to $file: $!\n";
-	if (fileno(FILE)) {
-		close(FILE) || die "Can't write to $file: $!\n";
+	if(getstore("$uri/$file", $file)) {
+		print " done\n";
+	} else {
+		print " error\n";
 	}
-	print " done\n";
 }
 
 sub cksum256 {
@@ -363,7 +353,7 @@ for my $candidat_server (@mirrors) {
                 next;
         } else {
                 my $time = tv_interval $time_before_dl;
-                if ($SHA256 eq $mirrored_SHA256) {
+                if ( defined($mirrored_SHA256) and ($SHA256 eq $mirrored_SHA256)) {
                         $synced_mirror{$candidat_server} = $time;
                 }
         }
